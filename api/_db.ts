@@ -1,7 +1,9 @@
 import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle, PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./_schema";
 
+let sqlClient: postgres.Sql | null = null;
+let dbInstance: PostgresJsDatabase<typeof schema> | null = null;
 let isTableCreated = false;
 
 async function checkAndCreateTable(client: any) {
@@ -28,17 +30,29 @@ async function checkAndCreateTable(client: any) {
       );
     `;
     isTableCreated = true;
+    console.log("Postgres orders table verified/created successfully.");
   } catch (err) {
     console.error("Error creating orders table in Postgres:", err);
   }
 }
 
 function getDb() {
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  // Prioritize PRISMA_DATABASE_URL or POSTGRES_URL to ensure we get the Postgres link, not the MySQL one
+  let url = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL;
   if (!url) return null;
-  const client = postgres(url, { ssl: "require" });
-  checkAndCreateTable(client);
-  return drizzle(client, { schema });
+
+  // Discard mysql connection string if it was loaded from DATABASE_URL
+  if (url.startsWith("mysql://") || url.startsWith("mysqls://")) {
+    url = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || "";
+    if (!url) return null;
+  }
+
+  if (!dbInstance) {
+    sqlClient = postgres(url, { ssl: { rejectUnauthorized: false } });
+    dbInstance = drizzle(sqlClient, { schema });
+    checkAndCreateTable(sqlClient);
+  }
+  return dbInstance;
 }
 
 export default getDb;
