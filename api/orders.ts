@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq } from "drizzle-orm";
-import { orders } from "./_schema";
-import getDb from "./_db";
+import { orders } from "./_schema.js";
+import getDb from "./_db.js";
 
 // In-memory fallback for local dev without a DB
 const localOrders: any[] = [];

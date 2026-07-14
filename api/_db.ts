@@ -1,6 +1,6 @@
 import postgres from "postgres";
 import { drizzle, PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as schema from "./_schema";
+import * as schema from "./_schema.js";
 
 let sqlClient: postgres.Sql | null = null;
 let dbInstance: PostgresJsDatabase<typeof schema> | null = null;
