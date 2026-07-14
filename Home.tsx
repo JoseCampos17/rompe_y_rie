@@ -119,6 +119,7 @@ export default function Home() {
   const [style, setStyle] = useState("tiernas");
   const [size, setSize] = useState("mediana");
   const [details, setDetails] = useState("");
+  const [clientBudget, setClientBudget] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [referenceFile, setReferenceFile] = useState<string | null>(null);
 
@@ -292,7 +293,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
               <a href="#about" className="font-semibold text-gray-700 hover:text-purple-600 transition-colors">Quiénes Somos</a>
               <a href="#process" className="font-semibold text-gray-700 hover:text-purple-600 transition-colors">¿Cómo Pedir?</a>
               <a href="#quote" className="font-semibold text-gray-700 hover:text-purple-600 transition-colors">Cotizar</a>
-              <a href="#hosting-info" className="font-semibold text-gray-700 hover:text-purple-600 transition-colors">Hosting y Web</a>
+
             </nav>
 
             <div className="hidden md:block">
@@ -318,7 +319,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
               <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600">Quiénes Somos</a>
               <a href="#process" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600">¿Cómo Pedir?</a>
               <a href="#quote" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600">Cotizar</a>
-              <a href="#hosting-info" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600">Hosting y Web</a>
+
               <Button asChild className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-full py-5 text-base">
                 <a href="#quote" onClick={() => setMobileMenuOpen(false)}>¡Cotizar Ahora!</a>
               </Button>
@@ -457,10 +458,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                       <h3 className="text-xl font-bold text-gray-900">{pinata.title}</h3>
                       <p className="text-[#6B5A57] text-sm leading-relaxed">{pinata.description}</p>
                     </div>
-                    <div className="mt-6 pt-4 border-t border-[#EDDED4] flex justify-between items-center">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Presupuesto Aprox.</span>
-                      <span className="text-[#6B21A8] font-black text-base">{pinata.priceEstimate}</span>
-                    </div>
+
                   </div>
                 </motion.div>
               ))}
@@ -671,10 +669,10 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                       onChange={e => setStyle(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
                     >
-                      <option value="cada-ocasion">Para cada ocasión (Nºs y siluetas) - Base $30.000</option>
-                      <option value="tiernas">Tiernas (Animalitos dulces) - Base $35.000</option>
-                      <option value="divertidas">Divertidas (Personajes animados) - Base $40.000</option>
-                      <option value="originales">Originales (Maquinaria/Estructuras 3D) - Base $45.000</option>
+                      <option value="cada-ocasion">Para cada ocasión (Nºs y siluetas)</option>
+                      <option value="tiernas">Tiernas (Animalitos dulces)</option>
+                      <option value="divertidas">Divertidas (Personajes animados)</option>
+                      <option value="originales">Originales (Maquinaria/Estructuras 3D)</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -684,9 +682,9 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                       onChange={e => setSize(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
                     >
-                      <option value="pequena">Pequeña (~60cm) - Multiplicador x1.0</option>
-                      <option value="mediana">Mediana (~80cm) - Multiplicador x1.4</option>
-                      <option value="grande">Grande (~100cm) - Multiplicador x1.8</option>
+                      <option value="pequena">Pequeña (~60cm)</option>
+                      <option value="mediana">Mediana (~80cm)</option>
+                      <option value="grande">Grande (~100cm)</option>
                     </select>
                   </div>
                 </div>
@@ -777,56 +775,102 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
               </form>
             </div>
 
-            {/* Price Box */}
+            {/* Resumen del pedido */}
             <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
               <Card className="border-4 border-[#6B21A8] bg-white shadow-lg rounded-3xl overflow-hidden relative">
                 <Bunting />
-                <CardContent className="p-6 sm:p-8 space-y-6 pt-12 text-left">
+                <CardContent className="p-6 sm:p-8 pt-12 space-y-5 text-left">
                   <div className="text-center space-y-1">
-                    <span className="text-xs font-bold text-pink-500 uppercase tracking-widest block">Resumen y Presupuesto</span>
-                    <h3 className="text-2xl font-black text-gray-900">Cotización Estimada</h3>
+                    <span className="text-xs font-bold text-pink-500 uppercase tracking-widest block">Tu pedido</span>
+                    <h3 className="text-2xl font-black text-gray-900">Resumen</h3>
                   </div>
 
-                  <div className="space-y-3 divide-y divide-[#EDDED4]">
-                    <div className="flex justify-between items-center py-2 pt-0">
-                      <span className="text-gray-600 text-sm">Estilo Base ({style})</span>
-                      <span className="font-bold text-gray-900">${stylePrices[style]?.toLocaleString("es-CL")} CLP</span>
+                  <div className="space-y-0 divide-y divide-[#EDDED4]">
+                    {clientName && (
+                      <div className="flex justify-between items-center py-2 pt-0">
+                        <span className="text-gray-500 text-sm">Nombre</span>
+                        <span className="font-bold text-gray-900 text-sm">{clientName}</span>
+                      </div>
+                    )}
+                    {clientPhone && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-500 text-sm">WhatsApp</span>
+                        <span className="font-bold text-gray-900 text-sm">{clientPhone}</span>
+                      </div>
+                    )}
+                    {clientEmail && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-500 text-sm">Correo</span>
+                        <span className="font-bold text-gray-900 text-sm truncate max-w-[55%]">{clientEmail}</span>
+                      </div>
+                    )}
+                    {eventDate && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-500 text-sm">Fecha del evento</span>
+                        <span className="font-bold text-gray-900 text-sm">{eventDate}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-500 text-sm">Categoría</span>
+                      <span className="font-bold text-gray-900 text-sm">
+                        {style === "tiernas" && "Tiernas"}
+                        {style === "divertidas" && "Divertidas"}
+                        {style === "originales" && "Originales"}
+                        {style === "cada-ocasion" && "Para cada ocasión"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-600 text-sm">Escala de Tamaño ({size})</span>
-                      <span className="font-bold text-gray-900">x{sizeMultipliers[size]}</span>
+                      <span className="text-gray-500 text-sm">Tamaño</span>
+                      <span className="font-bold text-gray-900 text-sm">
+                        {size === "pequena" && "Pequeña (~60cm)"}
+                        {size === "mediana" && "Mediana (~80cm)"}
+                        {size === "grande" && "Grande (~100cm)"}
+                      </span>
                     </div>
                     {selectedAddons.length > 0 && (
-                      <div className="flex justify-between items-start py-2">
-                        <span className="text-gray-600 text-sm">Adicionales</span>
-                        <div className="text-right space-y-0.5">
+                      <div className="py-2">
+                        <span className="text-gray-500 text-sm block mb-2">Adicionales</span>
+                        <div className="flex flex-wrap gap-1.5">
                           {selectedAddons.map(addon => (
-                            <span key={addon} className="block font-bold text-xs text-gray-700">
-                              {addon === "glitter" && "Glitter (+$5.000)"}
-                              {addon === "relieve" && "Relieve 3D (+$8.000)"}
-                              {addon === "flecos" && "Flecos (+$4.000)"}
+                            <span key={addon} className="bg-purple-100 text-purple-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                              {addon === "glitter" && "✨ Glitter"}
+                              {addon === "relieve" && "🎨 Relieve 3D"}
+                              {addon === "flecos" && "🎀 Flecos Dobles"}
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
-                    <div className="flex justify-between items-center py-4">
-                      <span className="text-gray-900 font-extrabold text-base">Costo Total Estimado</span>
-                      <span className="text-purple-600 font-black text-xl">${estimateTotal.toLocaleString("es-CL")} CLP</span>
-                    </div>
+                    {details && (
+                      <div className="py-2">
+                        <span className="text-gray-500 text-sm block mb-1">Detalles</span>
+                        <p className="text-gray-700 text-xs leading-relaxed line-clamp-3">{details}</p>
+                      </div>
+                    )}
+                    {referenceFile && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-500 text-sm">Imagen de referencia</span>
+                        <span className="text-xs font-bold text-emerald-600">✔ Adjuntada</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-pink-50/75 p-5 rounded-2xl border border-pink-100 text-center space-y-2 relative overflow-hidden">
-                    <span className="text-xs font-bold text-pink-500 uppercase tracking-wider block">Abono Inicial Requerido (50%)</span>
-                    <span className="text-pink-500 font-black text-2xl block">${estimateDeposit.toLocaleString("es-CL")} CLP</span>
-                    <span className="text-[10px] text-gray-500 block leading-tight">El saldo restante del 50% se abona al momento de la entrega de la piñata.</span>
+                  {/* Campo presupuesto del cliente */}
+                  <div className="bg-pink-50/75 p-4 rounded-2xl border border-pink-100 space-y-2">
+                    <label className="text-xs font-bold text-pink-600 uppercase tracking-wider block">Tu Presupuesto (CLP)</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: $30.000"
+                      value={clientBudget}
+                      onChange={e => setClientBudget(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 bg-white text-sm font-semibold text-gray-800 placeholder-gray-400"
+                    />
+                    <p className="text-[10px] text-gray-400 leading-tight">Ingresa el monto que tienes disponible y lo consideraremos en tu cotización.</p>
                   </div>
 
-                  <div className="space-y-2 text-center text-xs text-gray-500">
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                      <span>Pago en línea 100% seguro y encriptado</span>
-                    </div>
+                  <div className="flex items-center gap-1.5 justify-center text-xs text-gray-400">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span>Pago seguro con Mercado Pago</span>
                   </div>
                 </CardContent>
               </Card>
@@ -850,51 +894,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
         </div>
       </section>
 
-      {/* Hosting & Domain Assist Section - COMENTADO */}
-      {/* 
-      <section id="hosting-info" className="py-20 relative bg-white border-b border-[#EDDED4]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-3xl p-8 lg:p-12 text-white relative shadow-xl overflow-hidden text-left">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-              <div className="lg:col-span-8 space-y-4">
-                <div className="inline-flex items-center gap-1.5 bg-purple-500/50 border border-purple-400 px-3 py-1 rounded-full text-xs font-bold">
-                  <Star className="w-3.5 h-3.5 fill-current" />
-                  <span>Soporte de Configuración</span>
-                </div>
-                <h2 className="text-3xl lg:text-4xl font-extrabold">Configuración Inicial del Dominio y Hosting</h2>
-                <p className="text-purple-100 text-sm lg:text-base max-w-2xl leading-relaxed font-medium">
-                  ¿Quieres lanzar tu propia tienda de piñatas u otro proyecto en internet pero no sabes cómo comprar el dominio o instalar tu hosting?
-                  ¡Te asesoramos en todo el proceso! Te ayudamos a elegir el mejor registrador para dominios `.cl` o `.com` y a configurar el servidor ideal de manera rápida y sin complicaciones.
-                </p>
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <div className="flex items-center gap-1.5 bg-purple-900/35 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-emerald-400 font-bold">✔</span> Compra de dominio `.cl` (NIC Chile)
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-purple-900/35 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-emerald-400 font-bold">✔</span> Servidores hosting de alta velocidad
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-purple-900/35 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs">
-                    <span className="text-emerald-400 font-bold">✔</span> Cuentas de correos corporativas
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-4 flex justify-center lg:justify-end">
-                <Button asChild className="bg-yellow-400 hover:bg-yellow-500 text-purple-950 font-black px-8 py-7 rounded-full text-base shadow-lg hover-lift">
-                  <a href="https://wa.me/56994732212?text=Hola!%20Me%20interesa%20asistencia%20en%20hosting%20y%20dominio%20para%20mi%20sitio." target="_blank" rel="noopener noreferrer">
-                    Asesoría Gratuita
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      */}
 
       {/* Floating simulated Mercado Pago modal overlay */}
       <AnimatePresence>
@@ -1182,16 +1182,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
               </ul>
             </div>
 
-            {/* Support section */}
-            <div className="text-center md:text-left">
-              <h4 className="font-bold text-sm text-pink-400 mb-4 uppercase tracking-widest">Asistencia Web</h4>
-              <p className="text-xs text-gray-400 mb-2 leading-relaxed">
-                ¿Necesitas ayuda con hosting o configuración de dominios? Ofrecemos asesoría gratuita.
-              </p>
-              <a href="#hosting-info" className="inline-block text-xs font-bold text-yellow-400 hover:text-yellow-350 underline">
-                Saber más sobre Hosting y Dominios
-              </a>
-            </div>
+
           </div>
 
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
