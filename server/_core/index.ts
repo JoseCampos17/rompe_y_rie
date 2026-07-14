@@ -8,6 +8,9 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import apiAuth from "../../api/auth";
+import apiOrders from "../../api/orders";
+import apiUpload from "../../api/upload";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -44,6 +47,11 @@ async function startServer() {
       createContext,
     })
   );
+  // Mount serverless APIs for local testing
+  app.use("/api/auth", apiAuth as any);
+  app.use("/api/orders", apiOrders as any);
+  app.use("/api/upload", apiUpload as any);
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
