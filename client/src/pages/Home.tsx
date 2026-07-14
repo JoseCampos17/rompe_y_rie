@@ -126,6 +126,7 @@ export default function Home() {
   const [comprobanteName, setComprobanteName] = useState<string>("");
   const [mpOperationId, setMpOperationId] = useState("");
   const [submittingOrder, setSubmittingOrder] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   // Estados del modal de Mercado Pago
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -183,7 +184,7 @@ export default function Home() {
   };
 
   const handleSendOrder = async () => {
-    if (!comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details) {
+    if (!comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate) {
       alert("Por favor completa todos los campos obligatorios del formulario.");
       return;
     }
@@ -233,32 +234,19 @@ export default function Home() {
         throw new Error("No se pudo guardar la orden en la base de datos.");
       }
 
-      // 3. Abrir link de confirmación de WhatsApp
-      const msg = [
-        `🎉 *NUEVO PEDIDO - Rompe y Ríe*`,
-        ``,
-        `👤 *Datos del Cliente*`,
-        `Nombre: ${clientName}`,
-        `WhatsApp: ${clientPhone}`,
-        clientEmail ? `Correo: ${clientEmail}` : null,
-        ``,
-        `🎂 *Detalles de la Piñata*`,
-        `Categoría: ${style === "tiernas" ? "Tiernas" : style === "divertidas" ? "Divertidas" : style === "originales" ? "Originales" : "Para cada ocasión"}`,
-        `Tamaño: ${size === "pequena" ? "Pequeña (~60cm)" : size === "mediana" ? "Mediana (~80cm)" : "Grande (~100cm)"}`,
-        selectedAddons.length > 0 ? `Adicionales: ${selectedAddons.join(", ")}` : null,
-        `Detalles: ${details}`,
-        `Fecha del evento: ${eventDate}`,
-        clientBudget ? `Presupuesto cliente: ${clientBudget}` : null,
-        ``,
-        `💳 *Verificación de Pago*`,
-        `N° Operación MP: *${mpOperationId}*`,
-        `Comprobante adjunto: ${comprobanteName}`,
-        ``,
-        `⚠️ Verificar en Mercado Pago antes de confirmar el pedido.`
-      ].filter(Boolean).join("\n");
-
-      window.open(`https://wa.me/56994732212?text=${encodeURIComponent(msg)}`, "_blank");
-      alert("¡Cotización y comprobante registrados con éxito! Se abrirá WhatsApp para enviar los detalles.");
+      alert("¡Cotización y comprobante registrados con éxito! Recibirás la respuesta y confirmación en tu correo.");
+      
+      // Limpiar formulario tras éxito
+      setClientName("");
+      setClientPhone("");
+      setClientEmail("");
+      setEventDate("");
+      setDetails("");
+      setClientBudget("");
+      setSelectedAddons([]);
+      setComprobanteFile(null);
+      setComprobanteName("");
+      setMpOperationId("");
 
     } catch (err: any) {
       console.error(err);
@@ -700,278 +688,356 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                 </p>
               </div>
 
-              <form onSubmit={handleOpenCheckout} className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDDED4] shadow-md space-y-6">
-                <h3 className="font-bold text-xl text-gray-900 border-b border-[#EDDED4] pb-2 text-left">1. Tus Datos de Contacto</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Tu Nombre *</label>
-                    <input
-                      type="text"
-                      required
-                      value={clientName}
-                      onChange={e => setClientName(e.target.value)}
-                      placeholder="Ej. María González"
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Tu Celular/WhatsApp *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={clientPhone}
-                      onChange={e => setClientPhone(e.target.value)}
-                      placeholder="Ej. +56994732212"
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Tu Correo (Opcional)</label>
-                    <input
-                      type="email"
-                      value={clientEmail}
-                      onChange={e => setClientEmail(e.target.value)}
-                      placeholder="Ej. maria@ejemplo.com"
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Fecha de tu Evento *</label>
-                    <input
-                      type="date"
-                      required
-                      value={eventDate}
-                      onChange={e => setEventDate(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    />
-                  </div>
-                </div>
-
-                <h3 className="font-bold text-xl text-gray-900 border-b border-[#EDDED4] pb-2 pt-4 text-left">2. Configura tu Piñata</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Categoría / Estilo</label>
-                    <select
-                      value={style}
-                      onChange={e => setStyle(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    >
-                      <option value="cada-ocasion">Para cada ocasión (Nºs y siluetas)</option>
-                      <option value="tiernas">Tiernas (Animalitos dulces)</option>
-                      <option value="divertidas">Divertidas (Personajes animados)</option>
-                      <option value="originales">Originales (Maquinaria/Estructuras 3D)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700">Tamaño Aproximado</label>
-                    <select
-                      value={size}
-                      onChange={e => setSize(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                    >
-                      <option value="pequena">Pequeña (~60cm)</option>
-                      <option value="mediana">Mediana (~80cm)</option>
-                      <option value="grande">Grande (~100cm)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-bold text-gray-700">Detalles Adicionales y Adornos</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("glitter") ? "bg-pink-50 border-pink-200 text-pink-700" : "bg-white border-gray-200"}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedAddons.includes("glitter")}
-                        onChange={() => handleAddonChange("glitter")}
-                        className="hidden"
-                      />
-                      <Sparkles className="w-4 h-4 text-pink-500" />
-                      <div className="text-left">
-                        <span className="block font-bold text-xs leading-none">Glitter / Brillo</span>
-                        <span className="text-[10px] text-gray-500 font-medium">+$5.000 CLP</span>
+              <form className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EDDED4] shadow-md space-y-6">
+                {/* Indicador de pasos */}
+                <div className="flex items-center justify-between pb-6 border-b border-[#EDDED4] mb-6">
+                  {[
+                    { step: 1, label: "Contacto" },
+                    { step: 2, label: "Personalizar" },
+                    { step: 3, label: "Pago" }
+                  ].map((s, idx) => (
+                    <div key={s.step} className="flex items-center flex-1 last:flex-none">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
+                          currentStep === s.step
+                            ? "bg-[#6B21A8] text-white"
+                            : currentStep > s.step
+                            ? "bg-emerald-500 text-white"
+                            : "bg-gray-200 text-gray-500"
+                        }`}>
+                          {currentStep > s.step ? "✓" : s.step}
+                        </span>
+                        <span className={`text-xs font-bold ${
+                          currentStep === s.step ? "text-[#6B21A8]" : "text-gray-400"
+                        }`}>
+                          {s.label}
+                        </span>
                       </div>
-                    </label>
-
-                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("relieve") ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-white border-gray-200"}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedAddons.includes("relieve")}
-                        onChange={() => handleAddonChange("relieve")}
-                        className="hidden"
-                      />
-                      <Maximize2 className="w-4 h-4 text-purple-500" />
-                      <div className="text-left">
-                        <span className="block font-bold text-xs leading-none">Relieve 3D / Capas</span>
-                        <span className="text-[10px] text-gray-500 font-medium">+$8.000 CLP</span>
-                      </div>
-                    </label>
-
-                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("flecos") ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-white border-gray-200"}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedAddons.includes("flecos")}
-                        onChange={() => handleAddonChange("flecos")}
-                        className="hidden"
-                      />
-                      <Palette className="w-4 h-4 text-yellow-500" />
-                      <div className="text-left">
-                        <span className="block font-bold text-xs leading-none">Flecos Dobles</span>
-                        <span className="text-[10px] text-gray-500 font-medium">+$4.000 CLP</span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-bold text-gray-700">Imagen de Referencia (Opcional)</label>
-                  <div className="border-2 border-dashed border-[#EDDED4] rounded-2xl p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                    <Upload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
-                    {referenceFile ? (
-                      <span className="font-semibold text-sm text-purple-600 block">{referenceFile}</span>
-                    ) : (
-                      <>
-                        <span className="font-semibold text-xs text-gray-500 block">Sube un dibujo o foto de referencia</span>
-                        <span className="text-[10px] text-gray-400 block mt-0.5">Archivos JPG, PNG de hasta 5MB</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-bold text-gray-700">Cuéntanos tu idea o detalles especiales *</label>
-                  <textarea
-                    required
-                    value={details}
-                    onChange={e => setDetails(e.target.value)}
-                    rows={3}
-                    placeholder="Ej. Quiero que tenga el nombre 'Santi' escrito en el frente con letras de colores y que la cola sea muy larga con flecos fucsias."
-                    className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
-                  />
-                </div>
-
-                {/* Paso 1: Pagar */}
-                <div className="bg-[#EEF8FD] border border-[#009EE3]/30 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-[#009EE3] text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">1</span>
-                    <span className="font-bold text-sm text-gray-800">Realiza el pago con Mercado Pago</span>
-                  </div>
-                  <a
-                    href="https://mpago.la/2nz3cFC"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-[#009EE3] hover:bg-[#008CD0] hover-lift text-white font-extrabold py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-                    Ir a pagar con Mercado Pago
-                  </a>
-                </div>
-
-                {/* Paso 2: Subir comprobante */}
-                <div className="bg-pink-50 border border-pink-200 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-pink-500 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">2</span>
-                    <span className="font-bold text-sm text-gray-800">Sube tu comprobante de pago <span className="text-pink-500">*</span></span>
-                  </div>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Después de pagar, descarga el comprobante desde Mercado Pago y adjúntalo aquí. <strong>Sin comprobante no confirmaremos el pedido.</strong>
-                  </p>
-                  <label className="cursor-pointer block">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      required
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setComprobanteName(file.name);
-                          const reader = new FileReader();
-                          reader.onload = ev => setComprobanteFile(ev.target?.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                    <div className={`w-full border-2 border-dashed rounded-xl px-4 py-4 text-center transition-colors ${
-                      comprobanteFile ? "border-emerald-400 bg-emerald-50" : "border-pink-300 bg-white hover:border-pink-400"
-                    }`}>
-                      {comprobanteFile ? (
-                        <div className="flex items-center justify-center gap-2 text-emerald-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          <span className="font-bold text-sm truncate max-w-[200px]">{comprobanteName}</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-pink-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-                          <span className="text-xs font-semibold text-gray-500 block">Haz clic para subir el comprobante</span>
-                          <span className="text-[10px] text-gray-400">JPG, PNG o PDF — máx. 5MB</span>
-                        </div>
+                      {idx < 2 && (
+                        <div className={`h-0.5 flex-1 mx-4 transition-colors ${
+                          currentStep > s.step ? "bg-emerald-300" : "bg-gray-200"
+                        }`} />
                       )}
                     </div>
-                  </label>
-                  {!comprobanteFile && (
-                    <p className="text-[10px] text-pink-500 font-semibold flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-                      Obligatorio — el comprobante confirma tu reserva
-                    </p>
-                  )}
+                  ))}
                 </div>
 
-                {/* Paso 3: Número de operación MP */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-yellow-400 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">3</span>
-                    <span className="font-bold text-sm text-gray-800">Ingresa tu N° de operación MP <span className="text-yellow-500">*</span></span>
+                {/* Paso 1: Datos de Contacto */}
+                {currentStep === 1 && (
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl text-gray-900 text-left">1. Tus Datos de Contacto</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Tu Nombre *</label>
+                        <input
+                          type="text"
+                          required
+                          value={clientName}
+                          onChange={e => setClientName(e.target.value)}
+                          placeholder="Ej. María González"
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Tu Celular/WhatsApp *</label>
+                        <input
+                          type="tel"
+                          required
+                          value={clientPhone}
+                          onChange={e => setClientPhone(e.target.value)}
+                          placeholder="Ej. +56994732212"
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Tu Correo (Opcional)</label>
+                        <input
+                          type="email"
+                          value={clientEmail}
+                          onChange={e => setClientEmail(e.target.value)}
+                          placeholder="Ej. maria@ejemplo.com"
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Fecha de tu Evento *</label>
+                        <input
+                          type="date"
+                          required
+                          value={eventDate}
+                          onChange={e => setEventDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!clientName || !clientPhone || !eventDate) {
+                            alert("Por favor completa los campos obligatorios del Paso 1.");
+                            return;
+                          }
+                          setCurrentStep(2);
+                        }}
+                        className="bg-[#6B21A8] hover:bg-purple-700 text-white font-extrabold px-8 py-3 rounded-full text-sm shadow-md"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Aparece en el comprobante de Mercado Pago como <strong>"N° de operación"</strong> o <strong>"ID de transacción"</strong>. Lo usamos para verificar que el pago sea real.
-                  </p>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: 123456789012"
-                    value={mpOperationId}
-                    onChange={e => setMpOperationId(e.target.value.replace(/\D/g, ""))}
-                    className="w-full px-4 py-3 rounded-xl border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white text-sm font-semibold text-gray-800 placeholder-gray-400"
-                  />
-                  {!mpOperationId && (
-                    <p className="text-[10px] text-yellow-600 font-semibold flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-                      Obligatorio — sin esto no podemos verificar tu pago
-                    </p>
-                  )}
-                </div>
+                )}
 
-                {/* Botón final: Enviar pedido por WhatsApp */}
-                <button
-                  type="button"
-                  disabled={submittingOrder || !comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details}
-                  onClick={handleSendOrder}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-full text-base shadow-md flex items-center justify-center gap-2 transition-colors"
-                >
-                  {submittingOrder ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Procesando pedido...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                      Enviar pedido por WhatsApp
-                    </>
-                  )}
-                </button>
-                {(!comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details) && (
-                  <p className="text-center text-xs text-gray-400">Completa todos los pasos anteriores para habilitar el envío</p>
+                {/* Paso 2: Configuración de la Piñata */}
+                {currentStep === 2 && (
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl text-gray-900 text-left">2. Configura tu Piñata</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Categoría / Estilo</label>
+                        <select
+                          value={style}
+                          onChange={e => setStyle(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        >
+                          <option value="cada-ocasion">Para cada ocasión (Nºs y siluetas)</option>
+                          <option value="tiernas">Tiernas (Animalitos dulces)</option>
+                          <option value="divertidas">Divertidas (Personajes animados)</option>
+                          <option value="originales">Originales (Maquinaria/Estructuras 3D)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-700">Tamaño Aproximado</label>
+                        <select
+                          value={size}
+                          onChange={e => setSize(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                        >
+                          <option value="pequena">Pequeña (~60cm)</option>
+                          <option value="mediana">Mediana (~80cm)</option>
+                          <option value="grande">Grande (~100cm)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-left">
+                      <label className="text-xs font-bold text-gray-700">Detalles Adicionales y Adornos</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("glitter") ? "bg-pink-50 border-pink-200 text-pink-700" : "bg-white border-gray-200"}`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedAddons.includes("glitter")}
+                            onChange={() => handleAddonChange("glitter")}
+                            className="hidden"
+                          />
+                          <Sparkles className="w-4 h-4 text-pink-500" />
+                          <div className="text-left">
+                            <span className="block font-bold text-xs leading-none">Glitter / Brillo</span>
+                            <span className="text-[10px] text-gray-500 font-medium">+$5.000 CLP</span>
+                          </div>
+                        </label>
+
+                        <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("relieve") ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-white border-gray-200"}`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedAddons.includes("relieve")}
+                            onChange={() => handleAddonChange("relieve")}
+                            className="hidden"
+                          />
+                          <Maximize2 className="w-4 h-4 text-purple-500" />
+                          <div className="text-left">
+                            <span className="block font-bold text-xs leading-none">Relieve 3D / Capas</span>
+                            <span className="text-[10px] text-gray-500 font-medium">+$8.000 CLP</span>
+                          </div>
+                        </label>
+
+                        <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedAddons.includes("flecos") ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-white border-gray-200"}`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedAddons.includes("flecos")}
+                            onChange={() => handleAddonChange("flecos")}
+                            className="hidden"
+                          />
+                          <Palette className="w-4 h-4 text-yellow-500" />
+                          <div className="text-left">
+                            <span className="block font-bold text-xs leading-none">Flecos Dobles</span>
+                            <span className="text-[10px] text-gray-500 font-medium">+$4.000 CLP</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-left">
+                      <label className="text-xs font-bold text-gray-700">Imagen de Referencia (Opcional)</label>
+                      <div className="border-2 border-dashed border-[#EDDED4] rounded-2xl p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Upload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                        {referenceFile ? (
+                          <span className="font-semibold text-sm text-purple-600 block">{referenceFile}</span>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-xs text-gray-500 block">Sube un dibujo o foto de referencia</span>
+                            <span className="text-[10px] text-gray-400 block mt-0.5">Archivos JPG, PNG de hasta 5MB</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-left">
+                      <label className="text-xs font-bold text-gray-700">Cuéntanos tu idea o detalles especiales (Opcional)</label>
+                      <textarea
+                        value={details}
+                        onChange={e => setDetails(e.target.value)}
+                        rows={3}
+                        placeholder="Ej. Quiero que tenga el nombre 'Santi' escrito en el frente con letras de colores y que la cola sea muy larga con flecos fucsias."
+                        className="w-full px-4 py-3 rounded-xl border border-[#EDDED4] focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] text-sm"
+                      />
+                    </div>
+
+                    <div className="flex justify-between pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(1)}
+                        className="border border-gray-200 text-gray-600 font-extrabold px-8 py-3 rounded-full text-sm"
+                      >
+                        Atrás
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(3)}
+                        className="bg-[#6B21A8] hover:bg-purple-700 text-white font-extrabold px-8 py-3 rounded-full text-sm shadow-md"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 3: Pago y comprobante */}
+                {currentStep === 3 && (
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-xl text-gray-900 text-left">3. Realiza el Pago y Adjunta el Comprobante</h3>
+                    
+                    <div className="bg-[#EEF8FD] border border-[#009EE3]/30 rounded-2xl p-4 space-y-3 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 bg-[#009EE3] text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">1</span>
+                        <span className="font-bold text-sm text-gray-800">Realiza el pago con Mercado Pago</span>
+                      </div>
+                      <a
+                        href="https://mpago.la/2nz3cFC"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-[#009EE3] hover:bg-[#008CD0] hover-lift text-white font-extrabold py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                        Ir a pagar con Mercado Pago
+                      </a>
+                    </div>
+
+                    <div className="bg-pink-50 border border-pink-200 rounded-2xl p-4 space-y-3 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 bg-pink-500 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">2</span>
+                        <span className="font-bold text-sm text-gray-800">Sube tu comprobante de pago <span className="text-pink-500">*</span></span>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Después de pagar, descarga el comprobante desde Mercado Pago y adjúntalo aquí.
+                      </p>
+                      <label className="cursor-pointer block">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          required
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setComprobanteName(file.name);
+                              const reader = new FileReader();
+                              reader.onload = ev => setComprobanteFile(ev.target?.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <div className={`w-full border-2 border-dashed rounded-xl px-4 py-4 text-center transition-colors ${
+                          comprobanteFile ? "border-emerald-400 bg-emerald-50" : "border-pink-300 bg-white hover:border-pink-400"
+                        }`}>
+                          {comprobanteFile ? (
+                            <div className="flex items-center justify-center gap-2 text-emerald-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              <span className="font-bold text-sm truncate max-w-[200px]">{comprobanteName}</span>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-pink-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                              <span className="text-xs font-semibold text-gray-500 block">Haz clic para subir el comprobante</span>
+                              <span className="text-[10px] text-gray-400">JPG, PNG o PDF — máx. 5MB</span>
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                      {!comprobanteFile && (
+                        <p className="text-[10px] text-pink-500 font-semibold flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                          Obligatorio — el comprobante confirma tu reserva
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 space-y-3 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 bg-yellow-400 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">3</span>
+                        <span className="font-bold text-sm text-gray-800">Ingresa tu N° de operación MP <span className="text-yellow-500">*</span></span>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Aparece en el comprobante de Mercado Pago como <strong>"N° de operación"</strong>.
+                      </p>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej: 123456789012"
+                        value={mpOperationId}
+                        onChange={e => setMpOperationId(e.target.value.replace(/\D/g, ""))}
+                        className="w-full px-4 py-3 rounded-xl border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white text-sm font-semibold text-gray-800 placeholder-gray-400"
+                      />
+                    </div>
+
+                    <div className="flex justify-between pt-4 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        className="border border-gray-200 text-gray-600 font-extrabold px-8 py-3 rounded-full text-sm"
+                      >
+                        Atrás
+                      </button>
+                      <button
+                        type="button"
+                        disabled={submittingOrder || !comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate}
+                        onClick={handleSendOrder}
+                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-full text-base shadow-md flex items-center justify-center gap-2 transition-colors"
+                      >
+                        {submittingOrder ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Procesando...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            Enviar y Confirmar Pedido
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </form>
             </div>
