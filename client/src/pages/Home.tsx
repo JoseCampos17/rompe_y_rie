@@ -122,6 +122,10 @@ export default function Home() {
   const [clientBudget, setClientBudget] = useState("");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [referenceFile, setReferenceFile] = useState<string | null>(null);
+  const [comprobanteFile, setComprobanteFile] = useState<string | null>(null);
+  const [comprobanteName, setComprobanteName] = useState<string>("");
+  const [mpOperationId, setMpOperationId] = useState("");
+  const [submittingOrder, setSubmittingOrder] = useState(false);
 
   // Estados del modal de Mercado Pago
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -175,6 +179,92 @@ export default function Home() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setReferenceFile(e.target.files[0].name);
+    }
+  };
+
+  const handleSendOrder = async () => {
+    if (!comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details) {
+      alert("Por favor completa todos los campos obligatorios del formulario.");
+      return;
+    }
+
+    setSubmittingOrder(true);
+    try {
+      // 1. Subir comprobante a Vercel Blob
+      const mimeType = comprobanteFile.split(";")[0].split(":")[1] || "image/jpeg";
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: comprobanteName,
+          fileBase64: comprobanteFile,
+          mimeType
+        })
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("No se pudo subir el comprobante de pago.");
+      }
+
+      const uploadData = await uploadRes.json();
+      const comprobanteUrl = uploadData.url;
+
+      // 2. Guardar orden en Postgres
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName,
+          clientPhone,
+          clientEmail,
+          eventDate,
+          style,
+          size,
+          addons: selectedAddons.join(", "),
+          details,
+          budget: clientBudget,
+          mpOperationId,
+          comprobanteUrl,
+          comprobanteName
+        })
+      });
+
+      if (!orderRes.ok) {
+        throw new Error("No se pudo guardar la orden en la base de datos.");
+      }
+
+      // 3. Abrir link de confirmación de WhatsApp
+      const msg = [
+        `🎉 *NUEVO PEDIDO - Rompe y Ríe*`,
+        ``,
+        `👤 *Datos del Cliente*`,
+        `Nombre: ${clientName}`,
+        `WhatsApp: ${clientPhone}`,
+        clientEmail ? `Correo: ${clientEmail}` : null,
+        ``,
+        `🎂 *Detalles de la Piñata*`,
+        `Categoría: ${style === "tiernas" ? "Tiernas" : style === "divertidas" ? "Divertidas" : style === "originales" ? "Originales" : "Para cada ocasión"}`,
+        `Tamaño: ${size === "pequena" ? "Pequeña (~60cm)" : size === "mediana" ? "Mediana (~80cm)" : "Grande (~100cm)"}`,
+        selectedAddons.length > 0 ? `Adicionales: ${selectedAddons.join(", ")}` : null,
+        `Detalles: ${details}`,
+        `Fecha del evento: ${eventDate}`,
+        clientBudget ? `Presupuesto cliente: ${clientBudget}` : null,
+        ``,
+        `💳 *Verificación de Pago*`,
+        `N° Operación MP: *${mpOperationId}*`,
+        `Comprobante adjunto: ${comprobanteName}`,
+        ``,
+        `⚠️ Verificar en Mercado Pago antes de confirmar el pedido.`
+      ].filter(Boolean).join("\n");
+
+      window.open(`https://wa.me/56994732212?text=${encodeURIComponent(msg)}`, "_blank");
+      alert("¡Cotización y comprobante registrados con éxito! Se abrirá WhatsApp para enviar los detalles.");
+
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Error al procesar el pedido. Por favor inténtalo de nuevo.");
+    } finally {
+      setSubmittingOrder(false);
     }
   };
 
@@ -769,9 +859,120 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-[#EC4899] hover:bg-pink-600 hover-lift text-white font-extrabold py-5 rounded-full text-base shadow-md">
-                  Reservar con Mercado Pago (Abono del 50%)
-                </Button>
+                {/* Paso 1: Pagar */}
+                <div className="bg-[#EEF8FD] border border-[#009EE3]/30 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 bg-[#009EE3] text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">1</span>
+                    <span className="font-bold text-sm text-gray-800">Realiza el pago con Mercado Pago</span>
+                  </div>
+                  <a
+                    href="https://mpago.la/2nz3cFC"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-[#009EE3] hover:bg-[#008CD0] hover-lift text-white font-extrabold py-3.5 rounded-xl text-sm shadow-md flex items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                    Ir a pagar con Mercado Pago
+                  </a>
+                </div>
+
+                {/* Paso 2: Subir comprobante */}
+                <div className="bg-pink-50 border border-pink-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 bg-pink-500 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">2</span>
+                    <span className="font-bold text-sm text-gray-800">Sube tu comprobante de pago <span className="text-pink-500">*</span></span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Después de pagar, descarga el comprobante desde Mercado Pago y adjúntalo aquí. <strong>Sin comprobante no confirmaremos el pedido.</strong>
+                  </p>
+                  <label className="cursor-pointer block">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      required
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setComprobanteName(file.name);
+                          const reader = new FileReader();
+                          reader.onload = ev => setComprobanteFile(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <div className={`w-full border-2 border-dashed rounded-xl px-4 py-4 text-center transition-colors ${
+                      comprobanteFile ? "border-emerald-400 bg-emerald-50" : "border-pink-300 bg-white hover:border-pink-400"
+                    }`}>
+                      {comprobanteFile ? (
+                        <div className="flex items-center justify-center gap-2 text-emerald-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <span className="font-bold text-sm truncate max-w-[200px]">{comprobanteName}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-pink-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                          <span className="text-xs font-semibold text-gray-500 block">Haz clic para subir el comprobante</span>
+                          <span className="text-[10px] text-gray-400">JPG, PNG o PDF — máx. 5MB</span>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                  {!comprobanteFile && (
+                    <p className="text-[10px] text-pink-500 font-semibold flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                      Obligatorio — el comprobante confirma tu reserva
+                    </p>
+                  )}
+                </div>
+
+                {/* Paso 3: Número de operación MP */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 bg-yellow-400 text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">3</span>
+                    <span className="font-bold text-sm text-gray-800">Ingresa tu N° de operación MP <span className="text-yellow-500">*</span></span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Aparece en el comprobante de Mercado Pago como <strong>"N° de operación"</strong> o <strong>"ID de transacción"</strong>. Lo usamos para verificar que el pago sea real.
+                  </p>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: 123456789012"
+                    value={mpOperationId}
+                    onChange={e => setMpOperationId(e.target.value.replace(/\D/g, ""))}
+                    className="w-full px-4 py-3 rounded-xl border border-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white text-sm font-semibold text-gray-800 placeholder-gray-400"
+                  />
+                  {!mpOperationId && (
+                    <p className="text-[10px] text-yellow-600 font-semibold flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                      Obligatorio — sin esto no podemos verificar tu pago
+                    </p>
+                  )}
+                </div>
+
+                {/* Botón final: Enviar pedido por WhatsApp */}
+                <button
+                  type="button"
+                  disabled={submittingOrder || !comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details}
+                  onClick={handleSendOrder}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-extrabold py-4 rounded-full text-base shadow-md flex items-center justify-center gap-2 transition-colors"
+                >
+                  {submittingOrder ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Procesando pedido...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      Enviar pedido por WhatsApp
+                    </>
+                  )}
+                </button>
+                {(!comprobanteFile || !mpOperationId || !clientName || !clientPhone || !eventDate || !details) && (
+                  <p className="text-center text-xs text-gray-400">Completa todos los pasos anteriores para habilitar el envío</p>
+                )}
               </form>
             </div>
 
@@ -896,240 +1097,7 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
 
 
 
-      {/* Floating simulated Mercado Pago modal overlay */}
-      <AnimatePresence>
-        {checkoutModalOpen && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden"
-            >
-              {/* Mercado Pago Header */}
-              <div className="bg-[#009EE3] p-5 text-white flex justify-between items-center relative">
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-xl italic tracking-tighter">mercado pago</span>
-                </div>
-                <button
-                  onClick={() => setCheckoutModalOpen(false)}
-                  className="p-1 rounded-full hover:bg-white/10 text-white/90 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
 
-              {/* Step: Form */}
-              {paymentStep === "form" && (
-                <div className="p-6 space-y-6">
-                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-left">
-                    <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block">Detalle del Pago</span>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-800 text-sm">Reserva Piñata (50% Abono)</span>
-                      <span className="font-black text-lg text-gray-900">${estimateDeposit.toLocaleString("es-CL")} CLP</span>
-                    </div>
-                  </div>
-
-                  {/* Payment method selector */}
-                  <div className="grid grid-cols-2 gap-2 border-b border-gray-100 pb-4">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("card")}
-                      className={`py-2 px-3 rounded-xl font-bold text-sm border transition-colors ${paymentMethod === "card" ? "bg-sky-50 border-[#009EE3] text-[#009EE3]" : "bg-white border-gray-200 text-gray-500"}`}
-                    >
-                      Tarjeta Crédito/Débito
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("transfer")}
-                      className={`py-2 px-3 rounded-xl font-bold text-sm border transition-colors ${paymentMethod === "transfer" ? "bg-sky-50 border-[#009EE3] text-[#009EE3]" : "bg-white border-gray-200 text-gray-500"}`}
-                    >
-                      Transferencia
-                    </button>
-                  </div>
-
-                  {paymentMethod === "card" ? (
-                    <div className="space-y-4">
-                      {/* Tarjeta Visual de Referencia */}
-                      <div className="bg-gradient-to-r from-blue-600 to-sky-500 p-5 rounded-2xl text-white shadow-md relative overflow-hidden h-36 flex flex-col justify-between text-left">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full translate-x-4 -translate-y-4" />
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-semibold tracking-widest">VISA / MASTERCARD</span>
-                          <span className="text-xs font-black italic">mercado pago</span>
-                        </div>
-                        <div className="text-center font-bold tracking-widest text-lg py-2">
-                          {cardNumber ? cardNumber.replace(/(\d{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider">
-                          <div>
-                            <span className="block text-[8px] text-sky-100 leading-none">Nombre</span>
-                            <span>{cardName || "Tu Nombre Aquí"}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[8px] text-sky-100 leading-none">Expira</span>
-                            <span>{cardExpiry || "MM/AA"}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Input fields */}
-                      <div className="space-y-3 text-left">
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-600">Número de la Tarjeta</label>
-                          <input
-                            type="text"
-                            maxLength={16}
-                            value={cardNumber}
-                            onChange={e => setCardNumber(e.target.value.replace(/\D/g, ""))}
-                            placeholder="4557 0000 0000 0000"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#009EE3] text-sm bg-gray-50"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-600">Nombre del Titular</label>
-                          <input
-                            type="text"
-                            value={cardName}
-                            onChange={e => setCardName(e.target.value)}
-                            placeholder="Ej. María González"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#009EE3] text-sm bg-gray-50"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-600">Vencimiento (MM/AA)</label>
-                            <input
-                              type="text"
-                              maxLength={5}
-                              value={cardExpiry}
-                              onChange={e => {
-                                let val = e.target.value.replace(/\D/g, "");
-                                if (val.length > 2) {
-                                  val = val.slice(0, 2) + "/" + val.slice(2, 4);
-                                }
-                                setCardExpiry(val);
-                              }}
-                              placeholder="08/29"
-                              className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#009EE3] text-sm bg-gray-50"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-600">Código CVV</label>
-                            <input
-                              type="password"
-                              maxLength={4}
-                              value={cardCVV}
-                              onChange={e => setCardCVV(e.target.value.replace(/\D/g, ""))}
-                              placeholder="123"
-                              className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#009EE3] text-sm bg-gray-50"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-6 space-y-4 text-center">
-                      <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 mx-auto text-lg font-bold">
-                        $
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="font-extrabold text-sm text-gray-800">Transferencia Bancaria Directa</h4>
-                        <p className="text-xs text-gray-500 px-4 leading-relaxed">
-                          Al presionar confirmar obtendrás los datos bancarios de Rompe y Ríe para realizar la transferencia de tu reserva.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleProcessPayment}
-                    className="w-full bg-[#009EE3] hover:bg-[#008CD0] text-white font-extrabold py-5 rounded-full text-base shadow-md"
-                  >
-                    Pagar Abono ${estimateDeposit.toLocaleString("es-CL")} CLP
-                  </Button>
-                </div>
-              )}
-
-              {/* Step: Loading */}
-              {paymentStep === "loading" && (
-                <div className="p-12 text-center space-y-6 flex flex-col items-center justify-center">
-                  <Loader2 className="w-12 h-12 text-[#009EE3] animate-spin" />
-                  <div className="space-y-2">
-                    <h3 className="font-extrabold text-lg text-gray-800">Procesando pago...</h3>
-                    <p className="text-xs text-gray-500 leading-relaxed">Estamos verificando la transacción con Mercado Pago y registrando tu reserva.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Step: Success */}
-              {paymentStep === "success" && (
-                <div className="p-6 text-center space-y-6 flex flex-col items-center">
-                  {/* Animación Check éxito */}
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-500 shadow-md">
-                    <Check className="w-10 h-10 stroke-[3px]" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-black text-xl text-emerald-600">¡Pago del Abono Confirmado!</h3>
-                    <p className="text-xs text-gray-600 leading-relaxed">El pago del 50% de tu piñata ha sido procesado exitosamente por Mercado Pago.</p>
-                  </div>
-
-                  {/* Detalle del pedido */}
-                  <div className="w-full bg-[#FFFDF6] border border-[#EDDED4] p-4 rounded-2xl text-left text-xs space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-500">Código de Pedido:</span>
-                      <span className="font-extrabold text-purple-600 text-sm">{createdOrderCode}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-500">Monto Abonado (50%):</span>
-                      <span className="font-bold text-gray-900">${estimateDeposit.toLocaleString("es-CL")} CLP</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-500">Saldo Pendiente (50%):</span>
-                      <span className="font-bold text-[#EC4899]">${estimateDeposit.toLocaleString("es-CL")} CLP</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-500">Entrega Estimada:</span>
-                      <span className="font-bold text-gray-900">{eventDate}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 w-full">
-                    <Button
-                      onClick={handleDownloadReceipt}
-                      variant="outline"
-                      className="w-full border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-4 rounded-full text-xs shadow-sm flex items-center justify-center gap-1.5"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Descargar Recibo en TXT
-                    </Button>
-
-                    <Button
-                      asChild
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-5 rounded-full text-sm shadow-md flex items-center justify-center gap-1.5 hover-lift"
-                    >
-                      <a
-                        href={`https://wa.me/56994732212?text=Hola%20Rompe%20y%20Rie!%20Acabo%20de%20realizar%20el%20abono%20de%20mi%20pedido%20con%20c%C3%B3digo%20${createdOrderCode}.%20Mi%20nombre%20es%20${encodeURIComponent(clientName)}%20y%20mi%20pi%C3%B1ata%20es%20estilo%20${encodeURIComponent(style)}%20de%20tama%C3%B1o%20${encodeURIComponent(size)}%20para%20el%20${eventDate}.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="w-5 h-5 fill-emerald-500 stroke-white" />
-                        Enviar Confirmación al WhatsApp
-                      </a>
-                    </Button>
-                  </div>
-
-                  <p className="text-[10px] text-gray-400 leading-tight">
-                    Por favor envía la confirmación de WhatsApp para coordinar los últimos detalles y el retiro.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Footer */}
       <footer className="bg-[#3F2E2C] text-[#FAF5F0] py-12 relative overflow-hidden text-left">
