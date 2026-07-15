@@ -17,6 +17,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── GET /api/orders ─────────────────────────────────────────────────────────
     if (req.method === "GET") {
+      const { id, phone } = req.query as { id?: string; phone?: string };
+      if (id && phone) {
+        const parsedId = parseInt(id, 10);
+        if (isNaN(parsedId)) {
+          return res.status(400).json({ error: "ID inválido" });
+        }
+        if (db) {
+          const [order] = await db
+            .select()
+            .from(orders)
+            .where(eq(orders.id, parsedId))
+            .limit(1);
+          if (!order) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+          }
+          if (order.clientPhone !== phone) {
+            return res.status(401).json({ error: "Número de teléfono no coincide" });
+          }
+          return res.status(200).json(order);
+        } else {
+          // Local fallback
+          const order = localOrders.find((o) => o.id === parsedId);
+          if (!order) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+          }
+          if (order.clientPhone !== phone) {
+            return res.status(401).json({ error: "Número de teléfono no coincide" });
+          }
+          return res.status(200).json(order);
+        }
+      }
+
       const adminPass = req.headers.authorization?.replace("Bearer ", "");
       const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
       if (adminPass !== adminPassword) {
@@ -26,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const all = await db.select().from(orders).orderBy(orders.createdAt);
         return res.status(200).json(all);
       }
-      return res.status(200).json(localOrders.reverse());
+      return res.status(200).json([...localOrders].reverse());
     }
 
     // ── POST /api/orders ─────────────────────────────────────────────────────────
@@ -63,11 +95,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         mpOperationId: body.mpOperationId ?? null,
         comprobanteUrl: body.comprobanteUrl ?? null,
         comprobanteName: body.comprobanteName ?? null,
-        status: "pending",
+        status: "pending_quote",
+        estimatedPrice: null,
+        depositAmount: null,
       };
 
       if (db) {
-        const [inserted] = await db.insert(orders).values(newOrder).returning();
+        const [inserted] = await db.insert(orders).values(newOrder as any).returning();
         return res.status(201).json(inserted);
       }
 
@@ -81,29 +115,95 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "PATCH") {
       const adminPass = req.headers.authorization?.replace("Bearer ", "");
       const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-      if (adminPass !== adminPassword) {
-        return res.status(401).json({ error: "No autorizado" });
+      const isAdmin = adminPass === adminPassword;
+
+      if (isAdmin) {
+        const { id, status, adminNotes, estimatedPrice, depositAmount } = req.body as {
+          id: number;
+          status: string;
+          adminNotes?: string;
+          estimatedPrice?: string;
+          depositAmount?: string;
+        };
+
+        if (db) {
+          const updateFields: any = { status };
+          if (adminNotes !== undefined) updateFields.adminNotes = adminNotes;
+          if (estimatedPrice !== undefined) updateFields.estimatedPrice = estimatedPrice;
+          if (depositAmount !== undefined) updateFields.depositAmount = depositAmount;
+
+          const [updated] = await db
+            .update(orders)
+            .set(updateFields)
+            .where(eq(orders.id, id))
+            .returning();
+          return res.status(200).json(updated);
+        }
+
+        // Local fallback
+        const idx = localOrders.findIndex((o) => o.id === id);
+        if (idx !== -1) {
+          localOrders[idx] = {
+            ...localOrders[idx],
+            status,
+            ...(adminNotes !== undefined && { adminNotes }),
+            ...(estimatedPrice !== undefined && { estimatedPrice }),
+            ...(depositAmount !== undefined && { depositAmount }),
+          };
+        }
+        return res.status(200).json(localOrders[idx] ?? {});
+      } else {
+        const { id, clientPhone, mpOperationId, comprobanteUrl, comprobanteName } = req.body as {
+          id: number;
+          clientPhone: string;
+          mpOperationId: string;
+          comprobanteUrl: string;
+          comprobanteName: string;
+        };
+
+        if (!id || !clientPhone) {
+          return res.status(401).json({ error: "No autorizado" });
+        }
+
+        if (db) {
+          const [order] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+          if (!order) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+          }
+          if (order.clientPhone !== clientPhone) {
+            return res.status(401).json({ error: "Número de teléfono no coincide" });
+          }
+
+          const [updated] = await db
+            .update(orders)
+            .set({
+              mpOperationId,
+              comprobanteUrl,
+              comprobanteName,
+              status: "pending",
+            })
+            .where(eq(orders.id, id))
+            .returning();
+          return res.status(200).json(updated);
+        } else {
+          // Local fallback
+          const idx = localOrders.findIndex((o) => o.id === id);
+          if (idx === -1) {
+            return res.status(404).json({ error: "Pedido no encontrado" });
+          }
+          if (localOrders[idx].clientPhone !== clientPhone) {
+            return res.status(401).json({ error: "Número de teléfono no coincide" });
+          }
+          localOrders[idx] = {
+            ...localOrders[idx],
+            mpOperationId,
+            comprobanteUrl,
+            comprobanteName,
+            status: "pending",
+          };
+          return res.status(200).json(localOrders[idx]);
+        }
       }
-
-      const { id, status, adminNotes } = req.body as {
-        id: number;
-        status: string;
-        adminNotes?: string;
-      };
-
-      if (db) {
-        const [updated] = await db
-          .update(orders)
-          .set({ status, adminNotes: adminNotes ?? null })
-          .where(eq(orders.id, id))
-          .returning();
-        return res.status(200).json(updated);
-      }
-
-      // Local fallback
-      const idx = localOrders.findIndex((o) => o.id === id);
-      if (idx !== -1) localOrders[idx] = { ...localOrders[idx], status, adminNotes };
-      return res.status(200).json(localOrders[idx] ?? {});
     }
 
     return res.status(405).json({ error: "Método no permitido" });

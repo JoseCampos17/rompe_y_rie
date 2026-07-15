@@ -24,10 +24,19 @@ async function checkAndCreateTable(client: any) {
         mp_operation_id VARCHAR(128),
         comprobante_url TEXT,
         comprobante_name VARCHAR(255),
-        status VARCHAR(32) DEFAULT 'pending' NOT NULL,
+        status VARCHAR(32) DEFAULT 'pending_quote' NOT NULL,
         admin_notes TEXT,
+        estimated_price VARCHAR(128),
+        deposit_amount VARCHAR(128),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
+    `;
+    // Add columns if they do not exist
+    await client`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS estimated_price VARCHAR(128);
+    `;
+    await client`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS deposit_amount VARCHAR(128);
     `;
     isTableCreated = true;
     console.log("Postgres orders table verified/created successfully.");

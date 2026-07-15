@@ -18,8 +18,10 @@ export const orders = pgTable("orders", {
   comprobanteUrl: text("comprobante_url"),
   comprobanteName: varchar("comprobante_name", { length: 255 }),
   // Estado del pedido
-  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  status: varchar("status", { length: 32 }).default("pending_quote").notNull(),
   adminNotes: text("admin_notes"),
+  estimatedPrice: varchar("estimated_price", { length: 128 }),
+  depositAmount: varchar("deposit_amount", { length: 128 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -18,6 +18,7 @@ import {
   DollarSign,
   Tag
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Order {
   id: number;
@@ -33,8 +34,10 @@ interface Order {
   mpOperationId: string | null;
   comprobanteUrl: string | null;
   comprobanteName: string | null;
-  status: "pending" | "verified" | "rejected";
+  status: "pending_quote" | "quoted" | "pending" | "verified" | "rejected" | "completed";
   adminNotes: string | null;
+  estimatedPrice: string | null;
+  depositAmount: string | null;
   createdAt: string;
 }
 
@@ -48,6 +51,20 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [depositInput, setDepositInput] = useState("");
+
+  useEffect(() => {
+    if (selectedOrder) {
+      setAdminNotes(selectedOrder.adminNotes || "");
+      setPriceInput(selectedOrder.estimatedPrice || "");
+      setDepositInput(selectedOrder.depositAmount || "");
+    } else {
+      setAdminNotes("");
+      setPriceInput("");
+      setDepositInput("");
+    }
+  }, [selectedOrder]);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("admin_token");
@@ -98,28 +115,70 @@ export default function Admin() {
     }
   };
 
-  const handleUpdateStatus = async (orderId: number, status: "verified" | "rejected") => {
+  const handleUpdateOrder = async (
+    orderId: number,
+    status: string,
+    extraFields: { estimatedPrice?: string; depositAmount?: string; adminNotes?: string } = {}
+  ) => {
     const token = localStorage.getItem("admin_token") || "";
     try {
+      const notesToSend = extraFields.adminNotes !== undefined ? extraFields.adminNotes : adminNotes;
       const res = await fetch("/api/orders", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ id: orderId, status, adminNotes }),
+        body: JSON.stringify({
+          id: orderId,
+          status,
+          adminNotes: notesToSend,
+          ...extraFields,
+        }),
       });
       if (res.ok) {
         const updated = await res.json();
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, adminNotes } : o));
-        setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status, adminNotes } : prev);
-        alert(`Pedido marcado como ${status === "verified" ? "verificado" : "rechazado"} exitosamente.`);
+        setOrders(prev =>
+          prev.map(o =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  status: status as any,
+                  adminNotes: notesToSend || null,
+                  estimatedPrice: extraFields.estimatedPrice !== undefined ? (extraFields.estimatedPrice || null) : o.estimatedPrice,
+                  depositAmount: extraFields.depositAmount !== undefined ? (extraFields.depositAmount || null) : o.depositAmount,
+                }
+              : o
+          )
+        );
+        setSelectedOrder(prev =>
+          prev && prev.id === orderId
+            ? {
+                ...prev,
+                status: status as any,
+                adminNotes: notesToSend || null,
+                estimatedPrice: extraFields.estimatedPrice !== undefined ? (extraFields.estimatedPrice || null) : prev.estimatedPrice,
+                depositAmount: extraFields.depositAmount !== undefined ? (extraFields.depositAmount || null) : prev.depositAmount,
+              }
+            : prev
+        );
+        toast.success(`Pedido actualizado exitosamente.`);
       } else {
-        alert("Error al actualizar el estado del pedido.");
+        toast.error("Error al actualizar el pedido.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error de conexión.");
+      toast.error("Error de conexión.");
+    }
+  };
+
+  const handlePriceInputChange = (val: string) => {
+    setPriceInput(val);
+    const num = parseInt(val.replace(/\D/g, ""), 10);
+    if (!isNaN(num)) {
+      setDepositInput(Math.round(num * 0.5).toString());
+    } else {
+      setDepositInput("");
     }
   };
 
@@ -203,8 +262,16 @@ export default function Admin() {
                 className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6]"
               />
             </div>
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
-              {["all", "pending", "verified", "rejected"].map(st => (
+            <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-xl w-full sm:w-auto">
+              {[
+                { st: "all", label: "Todas" },
+                { st: "pending_quote", label: "Por Cotizar" },
+                { st: "quoted", label: "Cotizados" },
+                { st: "pending", label: "Por Verificar" },
+                { st: "verified", label: "En Proceso" },
+                { st: "rejected", label: "Rechazados" },
+                { st: "completed", label: "Completados" }
+              ].map(({ st, label }) => (
                 <button
                   key={st}
                   onClick={() => setFilterStatus(st)}
@@ -214,10 +281,7 @@ export default function Admin() {
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {st === "all" && "Todas"}
-                  {st === "pending" && "Pendientes"}
-                  {st === "verified" && "Verificados"}
-                  {st === "rejected" && "Rechazados"}
+                  {label}
                 </button>
               ))}
             </div>
@@ -265,11 +329,17 @@ export default function Admin() {
                       <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
                         order.status === "verified" ? "bg-emerald-50 border-emerald-200 text-emerald-600" :
                         order.status === "rejected" ? "bg-rose-50 border-rose-200 text-rose-600" :
-                        "bg-yellow-50 border-yellow-200 text-yellow-600"
+                        order.status === "pending_quote" ? "bg-purple-50 border-purple-200 text-purple-600" :
+                        order.status === "quoted" ? "bg-blue-50 border-blue-200 text-blue-600" :
+                        order.status === "completed" ? "bg-gray-100 border-gray-300 text-gray-600" :
+                        "bg-yellow-50 border-yellow-200 text-yellow-600" // pending
                       }`}>
-                        {order.status === "verified" && "Verificado"}
+                        {order.status === "verified" && "En Proceso"}
                         {order.status === "rejected" && "Rechazado"}
-                        {order.status === "pending" && "Pendiente"}
+                        {order.status === "pending_quote" && "Por Cotizar"}
+                        {order.status === "quoted" && "Cotizado"}
+                        {order.status === "completed" && "Completado"}
+                        {order.status === "pending" && "Por Verificar"}
                       </span>
                       <span className="text-[10px] text-gray-400 font-medium">{new Date(order.createdAt).toLocaleDateString()}</span>
                     </div>
@@ -290,9 +360,12 @@ export default function Admin() {
                   <span className="text-[10px] text-purple-200 font-bold uppercase tracking-wider">Orden #{selectedOrder.id}</span>
                 </div>
                 <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/20 text-white`}>
-                  {selectedOrder.status === "verified" && "Verificado"}
+                  {selectedOrder.status === "verified" && "En Proceso"}
                   {selectedOrder.status === "rejected" && "Rechazado"}
-                  {selectedOrder.status === "pending" && "Pendiente"}
+                  {selectedOrder.status === "pending_quote" && "Por Cotizar"}
+                  {selectedOrder.status === "quoted" && "Cotizado"}
+                  {selectedOrder.status === "completed" && "Completado"}
+                  {selectedOrder.status === "pending" && "Por Verificar"}
                 </span>
               </div>
 
@@ -347,6 +420,22 @@ export default function Admin() {
                       <span className="text-gray-400 font-bold block">Presupuesto Cliente</span>
                       <span className="font-extrabold text-pink-500">{selectedOrder.budget || "No definido"}</span>
                     </div>
+                    {selectedOrder.estimatedPrice && (
+                      <div>
+                        <span className="text-gray-400 font-bold block">Precio Cotizado</span>
+                        <span className="font-extrabold text-emerald-600">
+                          ${parseInt(selectedOrder.estimatedPrice, 10).toLocaleString("es-CL")} CLP
+                        </span>
+                      </div>
+                    )}
+                    {selectedOrder.depositAmount && (
+                      <div>
+                        <span className="text-gray-400 font-bold block">Abono Requerido</span>
+                        <span className="font-extrabold text-purple-600">
+                          ${parseInt(selectedOrder.depositAmount, 10).toLocaleString("es-CL")} CLP
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {selectedOrder.addons && (
@@ -393,7 +482,36 @@ export default function Admin() {
                   )}
                 </div>
 
-                {/* Admin Notes */}
+                {/* Formulario de Pricing si está Por Cotizar */}
+                {selectedOrder.status === "pending_quote" && (
+                  <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-4 space-y-3 text-left">
+                    <span className="font-bold text-xs text-purple-700 uppercase tracking-wider block">Calcular Cotización</span>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <label className="font-bold text-gray-700">Precio Estimado (CLP) *</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 40000"
+                          value={priceInput}
+                          onChange={e => handlePriceInputChange(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 font-bold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-gray-700">Abono (50%) *</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 20000"
+                          value={depositInput}
+                          onChange={e => setDepositInput(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes and action buttons */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-700">Notas del Administrador</label>
                   <textarea
@@ -401,27 +519,94 @@ export default function Admin() {
                     onChange={e => setAdminNotes(e.target.value)}
                     placeholder="Ej. Pago verificado en MP. Entregar con base reforzada."
                     rows={2}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6]"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6B21A8] bg-[#FFFDF6] font-semibold"
                   />
                 </div>
 
                 {/* Action buttons */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <Button 
-                    onClick={() => handleUpdateStatus(selectedOrder.id, "rejected")}
-                    variant="outline" 
-                    className="border-rose-200 hover:bg-rose-50 text-rose-600 font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Rechazar Pago
-                  </Button>
-                  <Button 
-                    onClick={() => handleUpdateStatus(selectedOrder.id, "verified")}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Verificar Pago
-                  </Button>
+                <div className="pt-2">
+                  {selectedOrder.status === "pending_quote" && (
+                    <Button 
+                      onClick={() => handleUpdateOrder(selectedOrder.id, "quoted", { estimatedPrice: priceInput, depositAmount: depositInput, adminNotes })}
+                      disabled={!priceInput || !depositInput}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Enviar Cotización
+                    </Button>
+                  )}
+
+                  {selectedOrder.status === "pending" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={() => handleUpdateOrder(selectedOrder.id, "rejected", { adminNotes })}
+                        variant="outline" 
+                        className="border-rose-200 hover:bg-rose-50 text-rose-600 font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Rechazar Pago
+                      </Button>
+                      <Button 
+                        onClick={() => handleUpdateOrder(selectedOrder.id, "verified", { adminNotes })}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Verificar Pago
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedOrder.status === "verified" && (
+                    <Button 
+                      onClick={() => handleUpdateOrder(selectedOrder.id, "completed", { adminNotes })}
+                      className="w-full bg-[#6B21A8] hover:bg-purple-700 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Marcar como Completado
+                    </Button>
+                  )}
+
+                  {selectedOrder.status === "quoted" && (
+                    <div className="space-y-3">
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 text-center font-bold">
+                        Cotización enviada. Esperando abono del cliente.
+                      </div>
+                      <Button 
+                        onClick={() => handleUpdateOrder(selectedOrder.id, "quoted", { estimatedPrice: priceInput, depositAmount: depositInput, adminNotes })}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        Guardar Notas / Cambios
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedOrder.status === "rejected" && (
+                    <div className="space-y-3">
+                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 text-xs text-rose-700 text-center font-bold">
+                        Abono rechazado. Esperando nuevo comprobante del cliente.
+                      </div>
+                      <Button 
+                        onClick={() => handleUpdateOrder(selectedOrder.id, "rejected", { adminNotes })}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        Guardar Notas
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedOrder.status === "completed" && (
+                    <div className="space-y-3">
+                      <div className="bg-gray-100 border border-gray-200 rounded-xl p-3 text-xs text-gray-700 text-center font-bold">
+                        Pedido terminado y entregado.
+                      </div>
+                      <Button 
+                        onClick={() => handleUpdateOrder(selectedOrder.id, "completed", { adminNotes })}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-full py-4 text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        Guardar Notas
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
