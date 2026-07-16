@@ -25,7 +25,8 @@ import {
   Gift,
   Plus,
   ShoppingBag,
-  Search
+  Search,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1673,11 +1674,48 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
               </ul>
             </div>
 
+            {/* Redes Sociales y Email */}
+            <div className="text-center md:text-left space-y-4">
+              <h4 className="font-bold text-sm text-pink-400 uppercase tracking-widest">Síguenos</h4>
+              <ul className="space-y-3 text-xs text-gray-300 font-semibold">
+                <li className="flex items-center justify-center md:justify-start gap-2">
+                  <Mail className="w-3.5 h-3.5 text-pink-400" />
+                  <a href="mailto:anthony2277.ag@gmail.com" className="hover:text-pink-400 transition-colors">
+                    anthony2277.ag@gmail.com
+                  </a>
+                </li>
+                <li className="flex items-center justify-center md:justify-start pt-2">
+                  <a
+                    href="https://www.tiktok.com/@rompe.y.rie.piate?_r=1&_t=ZS-981xfgzmoAH"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 hover:text-pink-400 px-4 py-2.5 rounded-full border border-gray-700 transition-all group"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 15.68 6.33 6.33 0 0 0 9.33 22a6.33 6.33 0 0 0 6.33-6.33V9.38a8.31 8.31 0 0 0 4-.87V5.05a4.83 4.83 0 0 1-.07 1.64z"/>
+                    </svg>
+                    <span>TikTok</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
 
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
+          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p>&copy; {new Date().getFullYear()} Rompe y Ríe Piñatería. Todos los derechos reservados.</p>
+            <p>
+              Creado por{" "}
+              <a
+                href="https://devgamerpro.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pink-400 hover:text-pink-300 font-semibold transition-colors"
+              >
+                devgamerpro
+              </a>
+            </p>
           </div>
         </div>
       </footer>
