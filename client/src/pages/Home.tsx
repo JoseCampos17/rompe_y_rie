@@ -1284,8 +1284,8 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
                                 <span className="w-5 h-5 bg-[#009EE3] text-white rounded-full text-xs font-black flex items-center justify-center flex-shrink-0">1</span>
                                 <span className="font-bold text-xs text-gray-800">Realiza la transferencia en Mercado Pago</span>
                               </div>
-                              <a
-                                href="https://mpago.la/2nz3cFC"
+                                <a
+                                href="https://link.mercadopago.cl/rompeyriecom"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full bg-[#009EE3] hover:bg-[#008CD0] hover-lift text-white font-extrabold py-3.5 rounded-xl text-xs shadow-md flex items-center justify-center gap-2"
@@ -1705,15 +1705,16 @@ Estado del Abono: CONFIRMADO (Mercado Pago)
 
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p>&copy; {new Date().getFullYear()} Rompe y Ríe Piñatería. Todos los derechos reservados.</p>
-            <p>
-              Creado por{" "}
+            <p className="flex items-center gap-1.5 bg-[#4A3735] hover:bg-[#523F3D] px-4 py-2 rounded-full border border-pink-500/20 hover:border-pink-500/50 shadow-sm transition-all duration-300">
+              <span className="text-gray-400 font-medium">Creado con ❤️ por</span>
               <a
                 href="https://devgamerpro.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pink-400 hover:text-pink-300 font-semibold transition-colors"
+                className="text-pink-400 hover:text-pink-300 font-extrabold tracking-wide drop-shadow-[0_0_8px_rgba(244,114,182,0.4)] hover:scale-105 transition-all duration-300 flex items-center gap-1"
               >
                 devgamerpro
+                <span className="text-xs text-pink-400 inline-block animate-pulse">🚀</span>
               </a>
             </p>
           </div>
