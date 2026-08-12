@@ -45,6 +45,14 @@ import {
 // Definición de las piñatas reales provistas en la sesión
 const PINATAS_GALLERY = [
   {
+    id: 7,
+    title: "Número 7 Rapunzel",
+    category: "cada-ocasion",
+    description: "Piñata personalizada en forma de número 7 con temática de la Princesa Rapunzel, decorada con flores y colores vibrantes violeta y amarillo.",
+    image: "/images/rapunzel-seven.jpg",
+    priceEstimate: "$35.000 - $45.000 CLP"
+  },
+  {
     id: 1,
     title: "Vaca con Lazo Rosa",
     category: "tiernas",
